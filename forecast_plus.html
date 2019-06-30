@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>homework-echarts</title>
+        <script src="echarts.min.js"></script>
+        <style media="screen">
+            .box {
+                margin-bottom: 30px;
+                
+            }
+            .left {
+                width: 40%;
+                float: left;
+            }
+            .right {
+                /*position: relative;*/
+                width: 50%;
+                display: inline-block;
+            }
+            li {
+                margin: 10px;
+            }
+            
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="box left">
+                <select name="" id="sel-id">
+                    <option value="">北京</option>
+                    <option value="">上海</option>
+                    <option value="" selected>广州</option>
+                    <option value="">深圳</option>
+                    <option value="">杭州</option>
+                </select>
+                <button type="submit" class="btn-cls">确认</button>
+                <div class='temp'></div>
+            </div>
+
+
+            <div class="box right">                      
+                <div id="main" style=" height: 400px;"></div>
+            </div>
+        </div>
+        <script src="my.js"></script>
+        <script>
+            var element = e('#main')
+            var myChart = echarts.init(element)
+
+            var ajax = function(method, path, data, callback) {
+                var r = new XMLHttpRequest()
+                r.open(method, path, true)
+                // r.setRequestHeader('Content-Type', '')
+                r.onreadystatechange = function() {
+                    if (r.readyState == 4) {
+                        callback(r.response)
+                    }
+                }
+                r.send(data)
+            }
+
+            var templateW = (hWeather, lWeather, comfort, detail, clothes) => {
+                var t = `
+                    
+                    <div>
+                        <p>今日天气</p>
+                        <ul>
+                            <li>最高温度：${hWeather}°</li>
+                            <li>最低温度：${lWeather}°</li>
+                            <li>舒适度：${comfort}</li>
+                            <li>详情：${detail}</li>
+                            <li>穿衣建议：${clothes}</li>
+                        </ul>
+                    </div>
+                `
+                return t
+            }
+
+            
+
+            var loads = (location) => {
+                var rawData = []
+                var method = 'GET'
+                var input = document.querySelector('#input-id')
+                // var location = input.value()
+                var path = `https://free-api.heweather.com/s6/weather?location=${location}&key=eaeca1673cc442cf9d2efd12ef90748e`
+                ajax(method, path, '', (r) => {
+                    var option = {
+                        title: {
+                            text: `${location}未来三天气变化`
+                        },
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['最高温度', '最低温度']
+                        },
+                        toolbox: {
+                            feature: {
+                                saveAsImage: {}
+                            }
+                        },
+                        xAxis: {
+                            type: 'category',
+                            boundaryGap: false,
+                            data: []
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '{value} °C'
+                            }
+                        },
+                        series: [
+                            {
+                                name:'最高温度',
+                                type:'line',
+                                data:[]
+                            },
+                            {
+                                name:'最低温度',
+                                type:'line',
+                                data:[]
+                            }
+                        ]
+                    }
+                    var t = JSON.parse(r)
+                    rawData.push(t)
+                    var a = rawData[0]['HeWeather6'][0]['daily_forecast']
+                    
+
+                    option.xAxis.data = []
+                    for (var i = 0; i < a.length; i++) {
+                        option.xAxis.data.push(a[i].date)
+                    }
+
+                    option.series[0].data = []
+                    option.series[1].data = []
+                    for (var i = 0; i < a.length; i++) {
+                        option.series[0].data.push(a[i].tmp_max)
+                        option.series[1].data.push(a[i].tmp_min)
+                    }
+
+                    myChart.setOption(option)
+
+                    var hWeather = a[0]['tmp_max']
+                    var lWeather = a[0]['tmp_min']
+                    var b = rawData[0]['HeWeather6'][0]['lifestyle']
+                    log(b)
+                    var comfort = b[0]['brf']
+                    var detail = b[0]['txt']
+                    var clothes = b[1]['txt']
+
+                    
+                    var temp = e('.temp')
+                    var html = templateW(hWeather, lWeather, comfort, detail, clothes)
+                    temp.innerHTML = html
+                })
+
+            }
+
+            var cityWeather = () => {
+                var btn = document.querySelector('.btn-cls')
+		        var select = document.querySelector('#sel-id')
+                var location = select.options[select.selectedIndex].text
+                loads(location)
+                btn.addEventListener('click', function(event) {
+
+        			location = select.options[select.selectedIndex].text
+        			loads(location)
+        		})
+
+            }
+
+            var __main = () => {
+                cityWeather()
+            }
+            __main()
+
+        </script>
+
+    </body>
+</html>
